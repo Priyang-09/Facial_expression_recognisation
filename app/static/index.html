@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Facial Expression Recognition</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding-top: 30px; }
+    video { border-radius: 12px; box-shadow: 0 0 10px #888; }
+    #label { font-size: 1.8em; font-weight: bold; margin-top: 10px; }
+    #prob { color: gray; }
+    button { margin-top: 15px; padding: 10px 20px; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <h2>Facial Expression Recognition (MobileNetV2)</h2>
+  <video id="video" width="320" height="240" autoplay playsinline></video><br/>
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas><br/>
+  <button id="snap">Detect Expression</button>
+  <div id="label">–</div>
+  <div id="prob"></div>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const labelEl = document.getElementById('label');
+const probEl = document.getElementById('prob');
+
+async function startCamera(){
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+}
+startCamera();
+
+document.getElementById('snap').addEventListener('click', async ()=>{
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg');
+  labelEl.textContent = 'Detecting...';
+  const resp = await fetch('/predict', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ image: dataUrl })
+  });
+  const j = await resp.json();
+  labelEl.textContent = j.label;
+  probEl.textContent = 'Confidence: ' + (j.prob*100).toFixed(1) + '%';
+});
+</script>
+</body>
+</html>
